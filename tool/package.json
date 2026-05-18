@@ -1,0 +1,12 @@
+{
+  "name": "retail-icons-generator",
+  "version": "1.0.0",
+  "description": "Code generator: ByteDance IconPark → Dart constants for retail_icons Flutter package",
+  "private": true,
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "@icon-park/svg": "^1.4.2"
+  }
+}
