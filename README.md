@@ -21,30 +21,41 @@ dependencies:
 import 'package:retail_icons/retail_icons.dart';
 
 // Outline (default)
-RetailIcon(RetailIconsBase.camera)
+RetailIcon(.camera)
 
 // Outline with explicit color and size
-RetailIcon(RetailIconsBase.camera, color: Colors.blue, size: 32)
+RetailIcon(.camera, color: Colors.blue, size: 32)
 
 // Filled theme
-RetailIcon(RetailIconsBase.camera, theme: IconParkTheme.filled)
+RetailIcon(.camera, theme: .filled)
 
 // Two-tone (2 customizable color slots)
 RetailIcon(
-  RetailIconsBase.camera,
-  theme: IconParkTheme.twoTone,
+  .camera,
+  theme: .twoTone,
   colors: ['#333333', '#2F88FF'],   // optional — uses IconPark defaults when omitted
 )
 
 // Multi-color (up to 4 color slots)
 RetailIcon(
-  RetailIconsBase.camera,
-  theme: IconParkTheme.multiColor,
+  .camera,
+  theme: .multiColor,
   colors: ['#333333', '#2F88FF', '#FFFFFF', '#43CCF8'],
 )
 ```
 
+> **Note:** The dot-shorthand syntax (`.camera`, `.filled`, …) requires Dart 3.5+ and is
+> resolved at compile time — no runtime overhead.
+
 ## Icon categories
+
+All 2,658 icons are accessible directly via dot-shorthand. Category-scoped classes are
+also available for backward compatibility:
+
+```dart
+RetailIcon(.shoppingCart)          // dot-shorthand (preferred)
+RetailIcon(RetailIconsMoney.shoppingCart)  // category-scoped (still works)
+```
 
 Icons are grouped into static classes by category:
 

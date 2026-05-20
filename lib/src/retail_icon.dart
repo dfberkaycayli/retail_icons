@@ -6,17 +6,19 @@ import 'retail_icon_theme.dart';
 
 /// A widget that displays a ByteDance IconPark icon.
 ///
+/// Use dot-shorthand syntax (Dart 3.5+) for concise usage:
+///
 /// **Outline / Filled**
 /// ```dart
-/// RetailIcon(RetailIcons.camera)                          // outline, black
-/// RetailIcon(RetailIcons.camera, color: Colors.blue)      // outline, blue
-/// RetailIcon(RetailIcons.camera, theme: IconParkTheme.filled)
+/// RetailIcon(.camera)                          // outline, black
+/// RetailIcon(.camera, color: Colors.blue)      // outline, blue
+/// RetailIcon(.camera, theme: IconParkTheme.filled)
 /// ```
 ///
 /// **Two-tone** (2 colors)
 /// ```dart
 /// RetailIcon(
-///   RetailIcons.camera,
+///   .camera,
 ///   theme: IconParkTheme.twoTone,
 ///   // optional — falls back to IconPark defaults when omitted
 ///   colors: ['#333333', '#2F88FF'],
@@ -26,10 +28,15 @@ import 'retail_icon_theme.dart';
 /// **Multi-color** (up to 4 colors)
 /// ```dart
 /// RetailIcon(
-///   RetailIcons.camera,
+///   .camera,
 ///   theme: IconParkTheme.multiColor,
 ///   colors: ['#333333', '#2F88FF', '#FFFFFF', '#43CCF8'],
 /// )
+/// ```
+///
+/// Category-scoped access also works for backward compatibility:
+/// ```dart
+/// RetailIcon(RetailIconsBase.camera)
 /// ```
 class RetailIcon extends StatelessWidget {
   const RetailIcon(
