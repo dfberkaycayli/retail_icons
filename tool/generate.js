@@ -96,6 +96,29 @@ function dartString(str) {
 }
 
 /**
+ * Replace IconPark's randomly generated element ids with deterministic ones.
+ *
+ * @icon-park/svg mints a fresh `icon-<random hex>` id for every clipPath on
+ * every call, so regenerating produced a few hundred lines of diff that changed
+ * nothing. Deriving the id from the icon name and theme keeps each document's
+ * internal references intact while making the output reproducible.
+ */
+function stabilizeIds(svg, iconName, theme) {
+  const ids = [];
+  for (const [id] of svg.matchAll(/icon-[0-9a-f]{6,}/g)) {
+    if (!ids.includes(id)) ids.push(id);
+  }
+  if (ids.length === 0) return svg;
+
+  let result = svg;
+  ids.forEach((id, index) => {
+    const suffix = ids.length > 1 ? `-${index}` : '';
+    result = result.split(id).join(`icon-${iconName}-${theme}${suffix}`);
+  });
+  return result;
+}
+
+/**
  * Inject color slot placeholders (`__COLOR_N__`) into an SVG so that
  * RetailIconData._replaceColors() can substitute them at runtime.
  *
@@ -153,7 +176,7 @@ function getSvg(iconName, theme) {
       strokeLinejoin: 'round',
       colors: palette,
     });
-    return svg;
+    return stabilizeIds(svg, iconName, theme);
   } catch (_) {
     return null;
   }
