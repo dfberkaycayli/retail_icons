@@ -54,6 +54,18 @@ const DEFAULT_PALETTE = {
 const OUT_DIR = path.join(__dirname, '..', 'lib', 'src', 'icons');
 const ICONS_CLASS_FILE = path.join(__dirname, '..', 'lib', 'src', 'retail_icons.dart');
 const ICON_DATA_FILE = path.join(__dirname, '..', 'lib', 'src', 'retail_icon_data.dart');
+const LOOKUP_DIR = path.join(__dirname, '..', 'lib', 'src', 'lookup');
+const OUTLINE_MAP_FILE = path.join(LOOKUP_DIR, 'outline_svg_map.dart');
+
+// The XML header/footer shared by (almost) every IconPark outline SVG. Storing
+// it once instead of 2658 times keeps the runtime lookup table meaningfully
+// smaller; RetailIconLookup re-applies it. A handful of icons use a different
+// viewBox, so entries that don't match are stored whole — see stripSvgChrome().
+const STD_SVG_HEADER =
+  '<?xml version="1.0" encoding="UTF-8"?>' +
+  '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" ' +
+  'xmlns="http://www.w3.org/2000/svg">';
+const STD_SVG_FOOTER = '</svg>';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -93,6 +105,44 @@ function dartString(str) {
   // Just in case, replace any ''' sequence.
   const safe = str.replace(/'''/g, "''\\''");
   return `r'''${safe}'''`;
+}
+
+/**
+ * Replace IconPark's randomly generated element ids with deterministic ones.
+ *
+ * @icon-park/svg mints a fresh `icon-<random hex>` id for every clipPath on
+ * every call, so regenerating produced a few hundred lines of diff that changed
+ * nothing. Deriving the id from the icon name and theme keeps each document's
+ * internal references intact while making the output reproducible.
+ */
+function stabilizeIds(svg, iconName, theme) {
+  const ids = [];
+  for (const [id] of svg.matchAll(/icon-[0-9a-f]{6,}/g)) {
+    if (!ids.includes(id)) ids.push(id);
+  }
+  if (ids.length === 0) return svg;
+
+  let result = svg;
+  ids.forEach((id, index) => {
+    const suffix = ids.length > 1 ? `-${index}` : '';
+    result = result.split(id).join(`icon-${iconName}-${theme}${suffix}`);
+  });
+  return result;
+}
+
+/**
+ * Strip the shared XML header/footer from an outline SVG so the runtime lookup
+ * table stores only the drawing commands.
+ *
+ * Returns the SVG unchanged when it doesn't use the standard chrome (a few
+ * icons ship a `0 0 49 48` viewBox). Callers distinguish the two forms by
+ * testing for a leading `<?xml`, so no sentinel is needed.
+ */
+function stripSvgChrome(svg) {
+  if (svg.startsWith(STD_SVG_HEADER) && svg.endsWith(STD_SVG_FOOTER)) {
+    return svg.slice(STD_SVG_HEADER.length, svg.length - STD_SVG_FOOTER.length);
+  }
+  return svg;
 }
 
 /**
@@ -153,7 +203,7 @@ function getSvg(iconName, theme) {
       strokeLinejoin: 'round',
       colors: palette,
     });
-    return svg;
+    return stabilizeIds(svg, iconName, theme);
   } catch (_) {
     return null;
   }
@@ -304,6 +354,20 @@ iconDataLines.push('        _filled = filled,');
 iconDataLines.push('        _twoTone = twoTone,');
 iconDataLines.push('        _multiColor = multiColor;');
 iconDataLines.push('');
+iconDataLines.push('  /// Creates an icon that carries only its outline artwork.');
+iconDataLines.push('  ///');
+iconDataLines.push('  /// Used by `RetailIconLookup.byName`, which resolves icons at runtime from');
+iconDataLines.push('  /// a name sent by a server. Only the outline theme is available through');
+iconDataLines.push('  /// that path — see `package:retail_icons/lookup.dart` for why — so the');
+iconDataLines.push('  /// remaining themes fall back to the outline artwork rather than failing.');
+iconDataLines.push('  const RetailIconData.outlineOnly({');
+iconDataLines.push('    required this.name,');
+iconDataLines.push('    required String outline,');
+iconDataLines.push('  })  : _outline = outline,');
+iconDataLines.push('        _filled = outline,');
+iconDataLines.push('        _twoTone = outline,');
+iconDataLines.push('        _multiColor = outline;');
+iconDataLines.push('');
 iconDataLines.push('  /// Default two-tone color palette (matching IconPark defaults).');
 iconDataLines.push('  static const List<String> defaultTwoToneColors = [\'#333333\', \'#2F88FF\'];');
 iconDataLines.push('');
@@ -371,6 +435,55 @@ iconDataLines.push('');
 
 fs.writeFileSync(ICON_DATA_FILE, iconDataLines.join('\n'), 'utf8');
 console.log(`  ✓ retail_icon_data.dart (${allIcons.length} icon statics)`);
+
+// ---------------------------------------------------------------------------
+// Generate the runtime lookup table (outline theme only)
+// ---------------------------------------------------------------------------
+
+fs.mkdirSync(LOOKUP_DIR, { recursive: true });
+
+const lookupLines = [];
+lookupLines.push('// GENERATED FILE — DO NOT EDIT BY HAND.');
+lookupLines.push('// Run `cd tool && npm run generate` to regenerate.');
+lookupLines.push('//');
+lookupLines.push(`// Runtime name → outline SVG table. Total icons: ${allIcons.length}`);
+lookupLines.push('//');
+lookupLines.push('// Only the outline theme is included. RetailIconData keeps all four theme');
+lookupLines.push('// strings in one const object, so a map over those constants would retain');
+lookupLines.push('// every theme of every icon and defeat tree-shaking. This table duplicates');
+lookupLines.push('// just the outline artwork, which bounds the cost of importing');
+lookupLines.push('// `package:retail_icons/lookup.dart` to roughly a quarter of that.');
+lookupLines.push('//');
+lookupLines.push('// Values are stored without the XML chrome shared by almost every icon;');
+lookupLines.push('// [kOutlineSvgHeader] and [kOutlineSvgFooter] are re-applied at lookup time.');
+lookupLines.push('// A value that already starts with `<?xml` is a complete document.');
+lookupLines.push('');
+lookupLines.push('// ignore_for_file: lines_longer_than_80_chars');
+lookupLines.push('');
+lookupLines.push('/// The XML header shared by icons stored in stripped form.');
+lookupLines.push(`const String kOutlineSvgHeader = ${dartString(STD_SVG_HEADER)};`);
+lookupLines.push('');
+lookupLines.push('/// The closing tag shared by icons stored in stripped form.');
+lookupLines.push(`const String kOutlineSvgFooter = ${dartString(STD_SVG_FOOTER)};`);
+lookupLines.push('');
+lookupLines.push('/// Maps an IconPark icon name (e.g. `camera`) to its outline artwork.');
+lookupLines.push('const Map<String, String> kOutlineSvgByName = {');
+
+let strippedCount = 0;
+for (const icon of allIcons) {
+  const body = stripSvgChrome(icon.outline);
+  if (body !== icon.outline) strippedCount++;
+  lookupLines.push(`  '${icon.name}': ${dartString(body)},`);
+}
+
+lookupLines.push('};');
+lookupLines.push('');
+
+fs.writeFileSync(OUTLINE_MAP_FILE, lookupLines.join('\n'), 'utf8');
+console.log(
+  `  ✓ lookup/outline_svg_map.dart (${allIcons.length} entries, ` +
+  `${strippedCount} stored without XML chrome)`
+);
 
 // ---------------------------------------------------------------------------
 // Generate the master retail_icons.dart
