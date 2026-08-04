@@ -42,6 +42,20 @@ class RetailIconData {
         _twoTone = twoTone,
         _multiColor = multiColor;
 
+  /// Creates an icon that carries only its outline artwork.
+  ///
+  /// Used by `RetailIconLookup.byName`, which resolves icons at runtime from
+  /// a name sent by a server. Only the outline theme is available through
+  /// that path — see `package:retail_icons/lookup.dart` for why — so the
+  /// remaining themes fall back to the outline artwork rather than failing.
+  const RetailIconData.outlineOnly({
+    required this.name,
+    required String outline,
+  })  : _outline = outline,
+        _filled = outline,
+        _twoTone = outline,
+        _multiColor = outline;
+
   /// Default two-tone color palette (matching IconPark defaults).
   static const List<String> defaultTwoToneColors = ['#333333', '#2F88FF'];
 

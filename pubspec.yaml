@@ -1,6 +1,6 @@
 name: retail_icons
 description: "ByteDance IconPark icon library for Flutter. Supports outline, filled, two-tone and multi-color themes with tree-shaking and full color customization."
-version: 0.0.1
+version: 0.1.0
 homepage: https://github.com/dfberkaycayli/retail_icons
 repository: https://github.com/dfberkaycayli/retail_icons
 issue_tracker: https://github.com/dfberkaycayli/retail_icons/issues

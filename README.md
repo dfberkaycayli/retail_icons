@@ -6,13 +6,14 @@ ByteDance [IconPark](https://github.com/bytedance/IconPark) icon library for Flu
 - **4 themes**: outline, filled, two-tone, multi-color
 - **Tree-shaking**: only icons you reference are compiled into your app
 - **No extra assets**: SVG data is embedded as Dart constants
+- **Server-driven icons**: opt in to runtime name lookup via a separate import
 - Single dependency: [`flutter_svg`](https://pub.dev/packages/flutter_svg)
 
 ## Installation
 
 ```yaml
 dependencies:
-  retail_icons: ^0.0.1
+  retail_icons: ^0.1.0
 ```
 
 ## Usage
@@ -46,6 +47,38 @@ RetailIcon(
 
 > **Note:** The dot-shorthand syntax (`.camera`, `.filled`, …) requires Dart 3.5+ and is
 > resolved at compile time — no runtime overhead.
+
+## Server-driven icons
+
+When the icon isn't known until runtime — a menu whose items come from an API, for
+example — import the separate `lookup` library and resolve by name:
+
+```dart
+import 'package:retail_icons/retail_icons.dart';
+import 'package:retail_icons/lookup.dart';
+
+final icon = RetailIconLookup.byName(menuItem.icon) ?? RetailIconData.help;
+return RetailIcon(icon);
+```
+
+`byName` returns `null` for an unknown name instead of throwing, so the fallback is
+yours to choose. It accepts the spellings a backend is likely to send — all of
+`scan-code`, `scan_code`, `scanCode` and `assets/icons/scan-code.svg` resolve to the
+same icon.
+
+**This import has a cost, by design.** `RetailIconData` keeps all four themes of an
+icon in one const object, so a map over those constants would retain every theme of
+every icon and defeat tree-shaking entirely. The lookup table therefore stores the
+outline artwork separately (~1.8 MB of Dart source for all 2,658 icons) and lives
+behind its own import: code that never imports `lookup.dart` is unaffected and keeps
+full tree-shaking.
+
+Two consequences worth knowing:
+
+- Icons resolved by name carry **outline artwork only**. Passing another theme to
+  `RetailIcon` renders the outline rather than failing.
+- Keep using `RetailIcon(.camera)` wherever the icon *is* known at compile time.
+  Reach for `byName` only for the genuinely dynamic cases.
 
 ## Icon categories
 
